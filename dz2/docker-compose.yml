@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  postgres:
+    container_name: pg-server
+    image: postgres:15.3
+    environment:
+      POSTGRES_DB: "db1"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "123"
+    volumes:
+      - /var/lib/postgresql:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"    
+
+networks:
+  default:
+    name: pg-net
+    external: true
