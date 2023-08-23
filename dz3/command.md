@@ -28,6 +28,9 @@ yc compute instance attach-disk vm-ubuntu --disk-name first-disk --mode rw
 
 yc compute instance restart --name=vm-ubuntu
 
+-- удаление
+yc compute instance delete --name=vm-ubuntu
+yc compute disk delete --name=first-disk
 ```
 
 ## Монтирование Диска
