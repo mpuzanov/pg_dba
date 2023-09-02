@@ -1,0 +1,35 @@
+# DB Version: 11
+# OS Type: linux
+# DB Type: dw
+# Total Memory (RAM): 4 GB
+# CPUs num: 1
+# Data Storage: hdd
+
+max_connections = 40
+shared_buffers = 1GB
+effective_cache_size = 3GB
+maintenance_work_mem = 512MB
+checkpoint_completion_target = 0.9
+wal_buffers = 16MB
+default_statistics_target = 500
+random_page_cost = 4
+effective_io_concurrency = 2
+work_mem = 6553kB
+min_wal_size = 4GB
+max_wal_size = 16GB
+
+sudo pg_conftool 15 main set max_connections 40
+sudo pg_conftool 15 main set shared_buffers 1GB
+sudo pg_conftool 15 main set effective_cache_size 3GB
+sudo pg_conftool 15 main set maintenance_work_mem 512MB
+sudo pg_conftool 15 main set checkpoint_completion_target 0.9
+sudo pg_conftool 15 main set wal_buffers 16MB
+sudo pg_conftool 15 main set default_statistics_target 500
+sudo pg_conftool 15 main set random_page_cost 4
+sudo pg_conftool 15 main set effective_io_concurrency 2
+sudo pg_conftool 15 main set work_mem 6553kB
+sudo pg_conftool 15 main set min_wal_size 4GB
+sudo pg_conftool 15 main set max_wal_size 16GB
+
+sudo pg_ctlcluster 15 main restart
+sudo pg_conftool 15 main show max_wal_size
