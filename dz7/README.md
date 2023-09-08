@@ -38,11 +38,42 @@ INSERT INTO accounts VALUES (1,1000.00), (2,2000.00), (3,3000.00);
 
 3. Воспроизведите взаимоблокировку трех транзакций. Можно ли разобраться в ситуации постфактум, изучая журнал сообщений?
 
->tail -n 10 /var/log/postgresql/postgresql-15-main.log  
-![журнал сообщений](./pg-block-log.JPG)
-> В журнале также видно что 2213 ждёт 2206, а 2218 ждёт 2213
+```sql
+SHOW deadlock_timeout; (1s)
+-- Session #1
+BEGIN;
+SELECT pg_backend_pid();  --25354
+UPDATE accounts SET amount = amount - 100.00 WHERE acc_no = 1;
+-- Session #2
+BEGIN;
+SELECT pg_backend_pid();  --25355
+UPDATE accounts SET amount = amount - 10.00 WHERE acc_no = 2;
+-- Session #3
+BEGIN;
+SELECT pg_backend_pid();  --25357
+UPDATE accounts SET amount = amount - 20.00 WHERE acc_no = 3;
+
+-- Session #1  меняет 2 запись
+UPDATE accounts SET amount = amount + 100.00 WHERE acc_no = 2;
+-- Session #2  меняет 3 запись
+UPDATE accounts SET amount = amount + 10.00 WHERE acc_no = 3;
+-- Session #3  меняет 1 запись
+UPDATE accounts SET amount = amount + 20.00 WHERE acc_no = 1;
+-- через deadlock_timeout сброс транзакции с ошибкой
+ERROR:  deadlock detected
+DETAIL:  Process 25357 waits for ShareLock on transaction 330859; blocked by process 25354.
+Process 25354 waits for ShareLock on transaction 330860; blocked by process 25355.
+Process 25355 waits for ShareLock on transaction 330861; blocked by process 25357.
+HINT:  See server log for query details.
+CONTEXT:  while updating tuple (0,7) in relation "accounts"
+```
+
+>tail -n 25 /var/log/postgresql/postgresql-15-main.log  
+![журнал сообщений](./pg-block-log2.JPG)
+> В журнале также видно что 25357 ждёт 25354, 25354 ждёт 25355, а 25355 ждёт 25357.
 
 4. Могут ли две транзакции, выполняющие единственную команду UPDATE одной и той же таблицы (без where), заблокировать друг друга?
+
 > В теории да, могут так как UPDATE блокирует строки по мере их обновления.  
 > Например: в 1 сессии обновление идёт сверху вниз, а 2 сессии обновление происходит снизу вверх и они встречаются и ждут друг друга.  
 
