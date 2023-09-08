@@ -9,13 +9,14 @@
 1. Настройте сервер так, чтобы в журнал сообщений сбрасывалась информация о блокировках, удерживаемых более 200 миллисекунд. Воспроизведите ситуацию, при которой в журнале появятся такие сообщения.
 
 ```sql
-show log_min_duration_statement;  (тек.значение: -1)
+show deadlock_timeout;  (тек.значение: 1s)
 show log_lock_waits;  (off)
 ALTER SYSTEM SET log_lock_waits = on;
-ALTER SYSTEM SET log_min_duration_statement = '200ms';
+ALTER system set deadlock_timeout = 200;
 
 SELECT pg_reload_conf();
 
+-- подготовка данных для последующих тестов
 create database locks;
 \c locks
 CREATE TABLE accounts(
@@ -23,7 +24,22 @@ CREATE TABLE accounts(
   amount numeric
 );
 INSERT INTO accounts VALUES (1,1000.00), (2,2000.00), (3,3000.00);
+
+-- session 1
+BEGIN;
+SELECT pg_backend_pid(); --25354
+UPDATE accounts SET amount = amount + 100 WHERE acc_no = 1;
+
+-- session 2
+BEGIN;
+SELECT pg_backend_pid(); --25355
+CREATE INDEX ON accounts(acc_no);
+
+-- появиться запись в журнале
 ```
+
+>tail -n 10 /var/log/postgresql/postgresql-15-main.log
+![журнал сообщений](./pg-block-log.JPG)
 
 2. Смоделируйте ситуацию обновления одной и той же строки тремя командами UPDATE в разных сеансах. Изучите возникшие блокировки в представлении pg_locks и убедитесь, что все они понятны. Пришлите список блокировок и объясните, что значит каждая.
 
@@ -39,7 +55,6 @@ INSERT INTO accounts VALUES (1,1000.00), (2,2000.00), (3,3000.00);
 3. Воспроизведите взаимоблокировку трех транзакций. Можно ли разобраться в ситуации постфактум, изучая журнал сообщений?
 
 ```sql
-SHOW deadlock_timeout; (1s)
 -- Session #1
 BEGIN;
 SELECT pg_backend_pid();  --25354
@@ -112,5 +127,4 @@ Process 2213 waits for ShareLock on transaction 330836; blocked by process 2206.
 
 ```
 
-**PS**: правда во 2 сеансе всё равно пришлось использовать WHERE без него по индексу UPDATE не получался.
-
+**PS**: правда во 2 сеансе всё равно пришлось использовать WHERE без него по индексу UPDATE не получался. Но думаю что это пока из-за недостаточного знания возможностей команд SQL в Postgresql.
