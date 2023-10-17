@@ -28,6 +28,8 @@ create table flights_range_201608 partition of flights_range for values from ('2
 -- секция для архивных данных (без разбивки по периодам)
 create table flights_range_history partition of flights_range for values from ('2015-01-01'::timestamptz) TO ('2016-08-01'::timestamptz);
 
+-- копирование данных
+INSERT INTO flights_range SELECT * FROM flights;
 ```
 
 сравнил результаты выполнения запроса на стандартной таблице и секционированной
